@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Calendar - Modern Event Management</title>
+    <meta name="description" content="A modern web interface for the ESP32 Calendar system with sleek design and interactive features">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@300;400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        .code-font {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #1a4f72 0%, #2980b9 50%, #1a4f72 100%);
+        }
+        
+        .pixel-btn {
+            transition: all 0.1s ease;
+            box-shadow: 0 4px 0 #333;
+        }
+        
+        .pixel-btn:hover {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #333;
+        }
+        
+        .pixel-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #333;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        
+        .calendar-container {
+            width: 320px;
+            height: 320px;
+            position: relative;
+            background-color: #e0f0ff;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+            animation: pulse 3s infinite ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .calendar-animation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 260px;
+            height: 260px;
+        }
+        
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .calendar-day {
+            height: 110px;
+            border-radius: 12px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calendar-day:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
+        }
+
+        .day-number {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .event-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 6px;
+            margin-bottom: 2px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        .event-work {
+            background: linear-gradient(135deg, rgba(255, 159, 159, 0.9) 0%, rgba(255, 107, 107, 0.9) 100%);
+        }
+
+        .event-personal {
+            background: linear-gradient(135deg, rgba(159, 214, 255, 0.9) 0%, rgba(74, 144, 226, 0.9) 100%);
+        }
+
+        .event-other {
+            background: linear-gradient(135deg, rgba(209, 255, 159, 0.9) 0%, rgba(130, 204, 221, 0.9) 100%);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        @keyframes modalEnter {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-enter {
+            animation: modalEnter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .today {
+            background: linear-gradient(135deg, rgba(116, 185, 255, 0.3) 0%, rgba(9, 132, 227, 0.3) 100%);
+            border: 2px solid rgba(116, 185, 255, 0.6);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 px-4 py-3 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="pixel-font text-xl text-blue-400">ESP32 Calendar</div>
+            <div class="flex space-x-4">
+                <a href="#features" class="hover:text-blue-400 transition-colors">Features</a>
+                <a href="#demo" class="hover:text-blue-400 transition-colors">Demo</a>
+                <a href="#installation" class="hover:text-blue-400 transition-colors">Installation</a>
+                <a href="https://github.com/CyberXcyborg/ESP32-CAlender" target="_blank" class="hover:text-blue-400 transition-colors">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg py-20 relative overflow-hidden">
+        <div class="container mx-auto px-4 relative z-10 flex flex-col md:flex-row items-center">
+            <div class="md:w-1/2 mb-10 md:mb-0">
+                <h1 class="pixel-font text-2xl md:text-4xl mb-6 leading-tight">Smart Calendar<br>For Your ESP32</h1>
+                <p class="text-lg mb-8 text-gray-200 max-w-lg">
+                    A beautiful, responsive calendar system for your ESP32 with event management, 
+                    seamless WiFi connectivity, and elegant glass-morphic interface.
+                </p>
+                <div class="flex space-x-4">
+                    <a href="#installation" class="pixel-btn bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-bold inline-block">
+                        Get Started
+                    </a>
+                    <a href="#features" class="pixel-btn bg-gray-700 hover:bg-gray-800 px-6 py-3 rounded-lg font-bold inline-block">
+                        Learn More
+                    </a>
+                </div>
+            </div>
+            <div class="md:w-1/2 flex justify-center">
+                <div class="calendar-container">
+                    <div class="calendar-animation">
+                        <svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Calendar Background -->
+                            <rect x="10" y="10" width="240" height="240" fill="#2c3e50" rx="15" />
+                            
+                            <!-- Calendar Header -->
+                            <rect x="20" y="20" width="220" height="40" fill="#34495e" rx="5" />
+                            
+                            <!-- Month Display -->
+                            <text x="130" y="45" font-family="Arial" font-size="18" fill="#ecf0f1" text-anchor="middle" font-weight="bold">JUNE 2023</text>
+                            
+                            <!-- Calendar Grid -->
+                            <g id="calendar-grid">
+                                <!-- Day Headers -->
+                                <text x="40" y="80" font-family="Arial" font-size="12" fill="#7f8c8d" text-anchor="middle">S</text>
+                                <text x="75" y="80" font-family="Arial" font-size="12" fill="#7f8c8d" text-anchor="middle">M</text>
+                                <text x="110" y="80" font-family="Arial" font-size="12" fill="#7f8c8d" text-anchor="middle">T</text>
+                                <text x="145" y="80" font-family="Arial" font-size="12" fill="#7f8c8d" text-anchor="middle">W</text>
+                                <text x="180" y="80" font-family="Arial" font-size="12" fill="#7f8c8d" text-anchor="middle">T</text>
+                                <text x="215" y="80" font-family="Arial" font-size="12" fill="#7f8c8d" text-anchor="middle">F</text>
+                                <text x="250" y="80" font-family="Arial" font-size="12" fill="#7f8c8d" text-anchor="middle">S</text>
+                                
+                                <!-- Calendar cells -->
+                                <!-- Row 1 -->
+                                <rect id="day1" x="20" y="90" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="35" y="110" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">1</text>
+                                
+                                <rect id="day2" x="55" y="90" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="70" y="110" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">2</text>
+                                
+                                <rect id="day3" x="90" y="90" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="105" y="110" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">3</text>
+                                
+                                <rect id="day4" x="125" y="90" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="140" y="110" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">4</text>
+                                
+                                <rect id="day5" x="160" y="90" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="175" y="110" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">5</text>
+                                
+                                <rect id="day6" x="195" y="90" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="210" y="110" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">6</text>
+                                
+                                <rect id="day7" x="230" y="90" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="245" y="110" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">7</text>
+                                
+                                <!-- Row 2 -->
+                                <rect id="day8" x="20" y="125" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="35" y="145" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">8</text>
+                                
+                                <rect id="day9" x="55" y="125" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="70" y="145" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">9</text>
+                                
+                                <rect id="day10" x="90" y="125" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="105" y="145" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">10</text>
+                                
+                                <rect id="day11" x="125" y="125" width="30" height="30" fill="#3498db" rx="5" opacity="0.7" />
+                                <text x="140" y="145" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle" font-weight="bold">11</text>
+                                
+                                <!-- Event Indicators -->
+                                <rect x="128" y="150" width="24" height="4" fill="#e74c3c" rx="2" />
+                                <rect x="128" y="156" width="24" height="4" fill="#2ecc71" rx="2" />
+
+                                <rect id="day12" x="160" y="125" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="175" y="145" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">12</text>
+                                
+                                <rect id="day13" x="195" y="125" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="210" y="145" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">13</text>
+                                
+                                <rect id="day14" x="230" y="125" width="30" height="30" fill="#3498db" rx="5" opacity="0.1" />
+                                <text x="245" y="145" font-family="Arial" font-size="12" fill="#ecf0f1" text-anchor="middle">14</text>
+                                
+                                <!-- More rows would continue... -->
+                                
+                                <!-- Calendar Navigation -->
+                                <rect x="65" y="210" width="40" height="25" fill="#2c3e50" rx="5" stroke="#3498db" stroke-width="2" />
+                                <text x="85" y="227" font-family="Arial" font-size="14" fill="#3498db" text-anchor="middle">◀</text>
+                                
+                                <rect x="155" y="210" width="40" height="25" fill="#2c3e50" rx="5" stroke="#3498db" stroke-width="2" />
+                                <text x="175" y="227" font-family="Arial" font-size="14" fill="#3498db" text-anchor="middle">▶</text>
+                            </g>
+                            
+                            <!-- Animation elements - blinking cursor -->
+                            <rect id="cursor" x="140" y="145" width="2" height="12" fill="#ecf0f1">
+                                <animate attributeName="opacity" values="1;0;1" dur="1.5s" repeatCount="indefinite" />
+                            </rect>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-gray-900 pointer-events-none"></div>
+    </section>
+
+    <!-- Calendar Introduction Section -->
+    <section id="why" class="py-16 bg-gray-800">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="pixel-font text-2xl md:text-3xl mb-8">Calendar Management</h2>
+            <p class="text-xl mb-6 text-blue-300">Beautiful event visualization on your ESP32 device.</p>
+            <div class="max-w-3xl mx-auto">
+                <p class="text-lg mb-8 text-gray-300">
+                    Stop struggling with outdated calendar solutions.<br>
+                    The ESP32 Calendar provides a modern, responsive interface<br>
+                    that works seamlessly across all your devices.
+                </p>
+                <p class="text-lg mb-4 text-gray-300">
+                    With an intuitive design, glass-morphic UI elements, and easy event management,<br>
+                    keeping track of your schedule has never been more elegant.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 bg-gray-900">
+        <div class="container mx-auto px-4">
+            <h2 class="pixel-font text-2xl md:text-3xl mb-12 text-center">Powerful Features</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="feature-card bg-gray-800 rounded-xl p-6 border-2 border-blue-700">
+                    <div class="text-blue-400 text-4xl mb-4">
+                        <i class="fas fa-calendar-plus"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Intuitive Event Creation</h3>
+                    <p class="text-gray-300">Add new events with just a few taps. Set time, category, and description with the user-friendly interface.</p>
+                </div>
+                
+                <div class="feature-card bg-gray-800 rounded-xl p-6 border-2 border-blue-700">
+                    <div class="text-blue-400 text-4xl mb-4">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Beautiful Design</h3>
+                    <p class="text-gray-300">Glass-morphic UI elements, smooth animations, and a responsive design that works on any device.</p>
+                </div>
+                
+                <div class="feature-card bg-gray-800 rounded-xl p-6 border-2 border-blue-700">
+                    <div class="text-blue-400 text-4xl mb-4">
+                        <i class="fas fa-wifi"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">WiFi Connected</h3>
+                    <p class="text-gray-300">Access your calendar from any device on your network. No need for external cloud services or subscriptions.</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+                <div class="feature-card bg-gray-800 rounded-xl p-6 border-2 border-blue-700">
+                    <div class="text-blue-400 text-4xl mb-4">
+                        <i class="fas fa-folder-open"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">SPIFFS Storage</h3>
+                    <p class="text-gray-300">All your events are stored directly on the ESP32's SPIFFS file system, ensuring your data remains available even after power cycles.</p>
+                </div>
+                
+                <div class="feature-card bg-gray-800 rounded-xl p-6 border-2 border-blue-700">
+                    <div class="text-blue-400 text-4xl mb-4">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Dark/Light Theme</h3>
+                    <p class="text-gray-300">Toggle between dark and light themes with a single tap. Customize your viewing experience to match your preference.</p>
+                </div>
+                
+                <div class="feature-card bg-gray-800 rounded-xl p-6 border-2 border-blue-700">
+                    <div class="text-blue-400 text-4xl mb-4">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Responsive Design</h3>
+                    <p class="text-gray-300">Access your calendar from any device - desktop, tablet, or smartphone with a beautiful, adaptive interface.</p>
+                </div>
+            </div>
+            
+            <div class="text-center mt-12">
+                <p class="text-xl text-blue-300">
+                    ESP32 + Calendar = Your Complete Scheduling Solution
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="py-16 bg-gray-800">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="pixel-font text-2xl md:text-3xl mb-8">Calendar Interface Preview</h2>
+            
+            <div class="max-w-4xl mx-auto bg-gray-900 rounded-lg p-8 border-2 border-blue-600">
+                <div class="mb-10">
+                    <div class="glass rounded-xl p-6 mb-6">
+                        <div class="flex items-center justify-between">
+                            <button class="btn-secondary flex items-center gap-2 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600">
+                                <i class="fas fa-chevron-left"></i>
+                                Previous
+                            </button>
+                            
+                            <h2 class="text-2xl font-bold">June 2025</h2>
+                            
+                            <button class="btn-secondary flex items-center gap-2 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600">
+                                Next
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Calendar Grid Demo -->
+                    <div class="glass rounded-xl p-6">
+                        <!-- Week Days Header -->
+                        <div class="grid grid-cols-7 gap-2 mb-4">
+                            <div class="text-center font-semibold py-2">Sun</div>
+                            <div class="text-center font-semibold py-2">Mon</div>
+                            <div class="text-center font-semibold py-2">Tue</div>
+                            <div class="text-center font-semibold py-2">Wed</div>
+                            <div class="text-center font-semibold py-2">Thu</div>
+                            <div class="text-center font-semibold py-2">Fri</div>
+                            <div class="text-center font-semibold py-2">Sat</div>
+                        </div>
+                        
+                        <!-- Calendar Days Demo -->
+                        <div class="calendar-grid">
+                            <!-- Row 1 -->
+                            <div class="calendar-day glass">
+                                <div class="day-number">1</div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">2</div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">3</div>
+                                <div class="event-item event-work">
+                                    <span>9:00</span>
+                                    <span>Meeting</span>
+                                </div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">4</div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">5</div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">6</div>
+                                <div class="event-item event-personal">
+                                    <span>13:00</span>
+                                    <span>Lunch</span>
+                                </div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">7</div>
+                            </div>
+                            
+                            <!-- Row 2 -->
+                            <div class="calendar-day glass">
+                                <div class="day-number">8</div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">9</div>
+                                <div class="event-item event-other">
+                                    <span>10:30</span>
+                                    <span>Dentist</span>
+                                </div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">10</div>
+                            </div>
+                            <div class="calendar-day glass today">
+                                <div class="day-number">11</div>
+                                <div class="event-item event-work">
+                                    <span>9:30</span>
+                                    <span>Standup</span>
+                                </div>
+                                <div class="event-item event-personal">
+                                    <span>18:00</span>
+                                    <span>Gym</span>
+                                </div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">12</div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">13</div>
+                            </div>
+                            <div class="calendar-day glass">
+                                <div class="day-number">14</div>
+                                <div class="event-item event-other">
+                                    <span>15:00</span>
+                                    <span>Shopping</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Event Modal Demo -->
+                <div class="mt-8">
+                    <h3 class="text-xl font-bold mb-4 text-center">Event Management</h3>
+                    <div class="glass rounded-xl p-6 max-w-md mx-auto modal-enter">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold flex items-center gap-2">
+                                <i class="fas fa-calendar-day"></i>
+                                Events for <span class="text-blue-400">June 11, 2023</span>
+                            </h3>
+                            <button class="text-2xl opacity-60 hover:opacity-100 transition-opacity">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <!-- Add Event Form -->
+                        <div class="mb-6 p-4 rounded-xl" style="background: rgba(0, 0, 0, 0.2);">
+                            <h4 class="font-semibold mb-4 flex items-center gap-2">
+                                <i class="fas fa-plus"></i>
+                                Add New Event
+                            </h4>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Time</label>
+                                    <input type="time" class="bg-gray-700 border border-gray-600 rounded-md px-3 py-2 w-full text-white" value="12:00">
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium mb-2">Event Description</label>
+                                    <input type="text" class="bg-gray-700 border border-gray-600 rounded-md px-3 py-2 w-full text-white" placeholder="Enter event description...">
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-4 items-end">
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium mb-2">Category</label>
+                                    <select class="bg-gray-700 border border-gray-600 rounded-md px-3 py-2 w-full text-white">
+                                        <option value="Work">💼 Work</option>
+                                        <option value="Personal">🏠 Personal</option>
+                                        <option value="Other">🎯 Other</option>
+                                    </select>
+                                </div>
+                                
+                                <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-bold inline-flex items-center gap-2">
+                                    <i class="fas fa-plus"></i>
+                                    Add Event
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Events List -->
+                        <div>
+                            <h4 class="font-semibold mb-4 flex items-center gap-2">
+                                <i class="fas fa-list"></i>
+                                Today's Events
+                            </h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between p-3 rounded-lg bg-red-200">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-lg">💼</span>
+                                        <div>
+                                            <div class="font-semibold text-gray-800">Morning Standup</div>
+                                            <div class="text-sm text-gray-600">9:30 • Work</div>
+                                        </div>
+                                    </div>
+                                    <button class="text-red-500 hover:text-red-700 transition-colors p-2">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 rounded-lg bg-blue-200">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-lg">🏠</span>
+                                        <div>
+                                            <div class="font-semibold text-gray-800">Evening Gym Session</div>
+                                            <div class="text-sm text-gray-600">18:00 • Personal</div>
+                                        </div>
+                                    </div>
+                                    <button class="text-red-500 hover:text-red-700 transition-colors p-2">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="installation" class="py-16 bg-gray-900">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="pixel-font text-2xl md:text-3xl mb-8">Get Started — In Minutes</h2>
+            <p class="text-lg mb-10 text-gray-300 max-w-2xl mx-auto">
+                Flash your ESP32 with the calendar code and start managing your schedule with ease.
+            </p>
+            
+            <div class="max-w-4xl mx-auto bg-gray-800 rounded-lg p-8 border-2 border-blue-600">
+                <h3 class="text-xl font-bold mb-6">Installation Instructions</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="text-left">
+                        <h4 class="font-bold text-blue-400 mb-3">What You'll Need:</h4>
+                        <ul class="list-disc pl-5 space-y-2 text-gray-300">
+                            <li>ESP32 development board</li>
+                            <li>Micro USB cable</li>
+                            <li>Arduino IDE installed</li>
+                            <li>ESP32 board definition in Arduino IDE</li>
+                            <li>Required libraries:
+                                <ul class="list-disc pl-5 mt-1">
+                                    <li>WiFi</li>
+                                    <li>WebServer</li>
+                                    <li>SPIFFS</li>
+                                    <li>ArduinoJson</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="text-left">
+                        <h4 class="font-bold text-blue-400 mb-3">Quick Setup:</h4>
+                        <ol class="list-decimal pl-5 space-y-2 text-gray-300">
+                            <li>Clone the GitHub repository</li>
+                            <li>Open the project in Arduino IDE</li>
+                            <li>Update WiFi credentials in the code</li>
+                            <li>Select the correct board and port in Arduino IDE</li>
+                            <li>Upload the code to your ESP32</li>
+                            <li>Open Serial Monitor at 115200 baud to see the IP address</li>
+                            <li>Access the calendar interface at http://[IP_ADDRESS]</li>
+                            <li>Start adding events to your calendar!</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row justify-center mt-8 space-y-4 sm:space-y-0 sm:space-x-4">
+                    <a href="https://github.com/CyberXcyborg/ESP32-CAlender" class="pixel-btn bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-bold inline-flex items-center justify-center">
+                        <i class="fab fa-github mr-2"></i> View on GitHub
+                    </a>
+                    <a href="https://github.com/CyberXcyborg/ESP32-CAlender/archive/refs/heads/main.zip" class="pixel-btn bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-bold inline-flex items-center justify-center">
+                        <i class="fas fa-download mr-2"></i> Download ZIP
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Example Section -->
+    <section class="py-16 bg-gray-800">
+        <div class="container mx-auto px-4">
+            <h2 class="pixel-font text-2xl md:text-3xl mb-8 text-center">Code Overview</h2>
+            <div class="bg-gray-900 rounded-lg p-4 overflow-auto max-h-96 text-sm max-w-4xl mx-auto">
+                <pre class="code-font text-green-400"><code>// Event Management Functions
+function addEvent() {
+  const text = document.getElementById("eventText").value.trim();
+  const time = document.getElementById("eventTime").value;
+  const category = document.getElementById("eventCategory").value;
+
+  if (!text) {
+    alert("Please enter event description.");
+    return;
+  }
+
+  if (!events[selectedDate]) {
+    events[selectedDate] = [];
+  }
+
+  events[selectedDate].push({ text, time, category });
+  
+  // Save to server
+  saveEvents();
+  
+  document.getElementById("eventText").value = '';
+  
+  updateEventsList();
+  renderCalendar();
+}
+
+// Save events to ESP32 SPIFFS
+function saveEvents() {
+  const saveData = async (retries = 3) => {
+    try {
+      const response = await fetch('/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(events)
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to save events');
+        if (retries > 0) {
+          setTimeout(() => saveData(retries - 1), 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving events:', error);
+      if (retries > 0) {
+        setTimeout(() => saveData(retries - 1), 1000);
+      }
+    }
+  };
+  
+  saveData();
+}</code></pre>
+            </div>
+            
+            <div class="max-w-3xl mx-auto mt-12">
+                <h3 class="text-xl font-bold mb-6 text-center text-blue-400">Key Implementation Features</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-gray-300">
+                    <div>
+                        <h4 class="font-bold mb-2">SPIFFS Storage</h4>
+                        <p>Events are stored in JSON format on the ESP32's SPIFFS file system, ensuring data persistence across power cycles.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold mb-2">WebServer Integration</h4>
+                        <p>The ESP32 serves the calendar interface via a built-in web server, making it accessible from any device on your network.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold mb-2">Responsive UI</h4>
+                        <p>The interface is built with modern HTML, CSS, and JavaScript, providing a smooth user experience across all devices.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold mb-2">Efficient Resource Usage</h4>
+                        <p>The calendar is optimized for ESP32's limited resources, with careful memory management and efficient data handling.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Configuration Section -->
+    <section class="py-16 bg-gray-900">
+        <div class="container mx-auto px-4">
+            <h2 class="pixel-font text-2xl md:text-3xl mb-8 text-center">WiFi Configuration</h2>
+            
+            <div class="max-w-4xl mx-auto bg-gray-800 rounded-lg p-8">
+                <div class="mb-6">
+                    <h4 class="font-bold text-blue-400 mb-3">WiFi Settings</h4>
+                    <p class="text-gray-300 mb-4">
+                        Update these WiFi credentials in the code to connect your ESP32 to your local network.
+                    </p>
+                    <pre class="code-font bg-gray-900 p-4 rounded-lg text-sm text-blue-300">
+// WiFi credentials
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";</pre>
+                </div>
+                
+                <div class="mb-6">
+                    <h4 class="font-bold text-blue-400 mb-3">Server Configuration</h4>
+                    <p class="text-gray-300 mb-4">
+                        The ESP32 web server runs on port 80 by default. You can access the calendar interface
+                        by typing the ESP32's IP address into your browser.
+                    </p>
+                    <pre class="code-font bg-gray-900 p-4 rounded-lg text-sm text-blue-300">
+// Create WebServer object on port 80
+WebServer server(80);
+
+// File paths
+const char* eventsFilePath = "/calendar_events.json";
+const char* indexHtmlPath = "/index.html";</pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Use Section -->
+    <section class="py-16 bg-gray-800">
+        <div class="container mx-auto px-4 max-w-3xl">
+            <h2 class="pixel-font text-2xl md:text-3xl mb-8 text-center">Why Use ESP32 Calendar?</h2>
+            <div class="prose prose-lg text-gray-300 mx-auto">
+                <p class="text-center mb-8">
+                    The ESP32 Calendar is a standalone solution that gives you complete control over your schedule.<br>
+                    No cloud services, no subscriptions, just your calendar on your device.
+                </p>
+                
+                <div class="bg-gray-900 p-6 rounded-lg mb-8">
+                    <h3 class="text-xl font-bold mb-4 text-center text-blue-400">Perfect Use Cases</h3>
+                    <ul class="list-disc pl-6 space-y-2">
+                        <li><strong>Home Dashboard</strong> - Mount an ESP32 with a display as a family calendar</li>
+                        <li><strong>Office Scheduling</strong> - Track meeting room availability</li>
+                        <li><strong>Personal Organizer</strong> - Keep your schedule accessible on your local network</li>
+                        <li><strong>IoT Integration</strong> - Trigger automation based on calendar events</li>
+                    </ul>
+                </div>
+                
+                <p class="text-center mt-12 text-blue-300 text-lg">
+                    Elegant. Efficient. Entirely yours.
+                    The perfect calendar solution for your ESP32 projects.
+                </p>                
+            </div>
+        </div>
+    </section>
+
+  <!-- Support Section -->
+    <section class="py-16 bg-gray-900">
+        <div class="container mx-auto px-4 max-w-3xl text-center">
+            <h2 class="pixel-font text-2xl md:text-3xl mb-8">Support This Project</h2>
+            <p class="text-lg mb-8 text-gray-300">
+                This project is open-source and free to use. If you find it useful for your projects, please consider supporting its continued development.
+            </p>
+            
+            <div class="text-center mt-10">
+                    <a href="https://buymeacoffee.com/cyberxcyborg" target="_blank" class="pixel-btn bg-yellow-600 hover:bg-yellow-700 px-6 py-3 rounded-lg font-bold inline-flex items-center">
+                        <i class="fas fa-mug-hot mr-2"></i> Buy Me a Coffee
+                    </a>
+                    <p class="mt-3 text-sm text-gray-400">
+                        (A tiny thanks powers the next evolution.)
+                    </p>
+                </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 pt-12 pb-8 border-t border-gray-800">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-8 md:mb-0">
+                    <div class="pixel-font text-xl text-blue-400 mb-2">ESP32 Calendar</div>
+                    <p class="text-gray-400">Your local network scheduling solution</p>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="https://github.com/CyberXcyborg/ESP32-CAlender" target="_blank" class="text-gray-400 hover:text-blue-400 transition-colors text-2xl">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-sm text-gray-500 mb-4 md:mb-0">
+                    &copy; 2025 ESP32 Calendar. Open-source under MIT License.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // This would be expanded with full functionality in the actual implementation
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('ESP32 Calendar initialized');
+        });
+    </script>
+</body>
+</html>

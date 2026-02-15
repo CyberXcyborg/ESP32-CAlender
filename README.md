@@ -1,5 +1,6 @@
 # 📅 ESP32 Calendar – A Web-Based Scheduler
 
+![Version](https://img.shields.io/badge/version-1.1-blue)
 ![GitHub stars](https://img.shields.io/github/stars/CyberXcyborg/ESP32-CAlender?style=social)  
 ![License](https://img.shields.io/github/license/CyberXcyborg/ESP32-CAlender)  
 ![Last Commit](https://img.shields.io/github/last-commit/CyberXcyborg/ESP32-CAlender)
